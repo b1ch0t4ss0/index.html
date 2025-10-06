@@ -1,0 +1,261 @@
+/*
+FiveM Police Vehicles - Single-file React page
+- Framework: React (single component export)
+- Styling: TailwindCSS classes (assumes Tailwind is available in parent project)
+
+Features included:
+- Responsive grid product listing
+- Search, category filter, price range, and sort
+- Product detail modal with image gallery
+- Simple contact / purchase form (no payment integration) with validation
+- Sample data array (replace with your real vehicle data & image URLs)
+
+How to use:
+1) Create a React app (Vite / Create React App). Ensure Tailwind is configured.
+2) Copy this file into a component (e.g., src/components/VehicleStore.jsx).
+3) Import and render <VehicleStore /> in your app.
+4) Replace sample data and image placeholders with your assets.
+5) Connect a backend or payment provider (Stripe / PayPal) where noted.
+
+Notes:
+- All images use placeholder URLs. Replace with real hosted images or local imports.
+- If you want a static export, consider building with Vite and Netlify or Vercel deploy.
+*/
+
+import React, { useMemo, useState } from "react";
+
+const SAMPLE_VEHICLES = [
+  {
+    id: "trx-01",
+    name: "RAM TRX - Patrol",
+    price: 120,
+    currency: "USD",
+    category: "SUV",
+    description:
+      "Fully equipped RAM TRX police conversion. Extras: lightbar, push bumper, custom livery.",
+    images: [
+      "https://via.placeholder.com/800x450?text=RAM+TRX+1",
+      "https://via.placeholder.com/800x450?text=RAM+TRX+2",
+    ],
+    tags: ["patrol", "4x4", "lights"],
+  },
+  {
+    id: "raptor-01",
+    name: "Ford Raptor - Tactical",
+    price: 95,
+    currency: "USD",
+    category: "Truck",
+    description: "Aggressive raptor livery with tactical kit and extra handling tweaks.",
+    images: [
+      "https://via.placeholder.com/800x450?text=Raptor+1",
+      "https://via.placeholder.com/800x450?text=Raptor+2",
+    ],
+    tags: ["patrol", "tactical"],
+  },
+  {
+    id: "squad-01",
+    name: "Sedan Interceptor",
+    price: 45,
+    currency: "USD",
+    category: "Sedan",
+    description:
+      "Classic police sedan with siren, lightbar, and fast-spawn configuration for FiveM.",
+    images: [
+      "https://via.placeholder.com/800x450?text=Sedan+1",
+      "https://via.placeholder.com/800x450?text=Sedan+2",
+    ],
+    tags: ["sedan", "fastspawn"],
+  },
+];
+
+export default function VehicleStore() {
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("All");
+  const [maxPrice, setMaxPrice] = useState(500);
+  const [sort, setSort] = useState("popular");
+  const [cart, setCart] = useState([]);
+  const [selected, setSelected] = useState(null);
+
+  const categories = useMemo(() => ["All", ...new Set(SAMPLE_VEHICLES.map((v) => v.category))], []);
+
+  const filtered = useMemo(() => {
+    let list = SAMPLE_VEHICLES.filter((v) => v.price <= maxPrice);
+    if (category !== "All") list = list.filter((v) => v.category === category);
+    if (query) {
+      const q = query.toLowerCase();
+      list = list.filter(
+        (v) => v.name.toLowerCase().includes(q) || v.description.toLowerCase().includes(q) || v.tags.join(" ").includes(q)
+      );
+    }
+    if (sort === "price_asc") list = list.sort((a, b) => a.price - b.price);
+    if (sort === "price_desc") list = list.sort((a, b) => b.price - a.price);
+    return list;
+  }, [query, category, maxPrice, sort]);
+
+  function addToCart(v) {
+    setCart((c) => [...c, v]);
+    alert(`${v.name} agregado al carrito.`);
+  }
+
+  function handleContact(e) {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const name = form.get("name");
+    const email = form.get("email");
+    const message = form.get("message");
+    // TODO: send to your backend or email service
+    console.log({ name, email, message });
+    alert("Mensaje enviado. Te contactaremos pronto.");
+    e.target.reset();
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6 lg:p-12">
+      <header className="max-w-6xl mx-auto mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-extrabold">FiveM Police Vehicles</h1>
+            <p className="text-sm text-gray-600">Vehículos listos para usar en FiveM — livery, lights & handling.</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-sm">Carrito: <strong>{cart.length}</strong></div>
+            <button
+              onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm"
+            >
+              Contactar / Comprar
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Filters */}
+        <aside className="lg:col-span-1 bg-white p-4 rounded shadow-sm">
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Buscar</label>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="mt-1 block w-full border-gray-200 rounded-md shadow-sm"
+              placeholder="Ej: TRX, Raptor, livery"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Categoría</label>
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="mt-1 block w-full rounded-md border-gray-200">
+              {categories.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Precio máximo (USD)</label>
+            <input
+              type="range"
+              min={0}
+              max={500}
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(Number(e.target.value))}
+              className="mt-2 w-full"
+            />
+            <div className="text-sm text-gray-600 mt-1">≤ ${maxPrice}</div>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Ordenar</label>
+            <select value={sort} onChange={(e) => setSort(e.target.value)} className="mt-1 block w-full rounded-md border-gray-200">
+              <option value="popular">Popularidad</option>
+              <option value="price_asc">Precio: menor a mayor</option>
+              <option value="price_desc">Precio: mayor a menor</option>
+            </select>
+          </div>
+
+          <div className="text-xs text-gray-500 mt-4">Nota: precios base en USD. Para ventas reales conecta un método de pago y sistema de inventario.</div>
+        </aside>
+
+        {/* Product grid */}
+        <section className="lg:col-span-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map((v) => (
+              <article key={v.id} className="bg-white rounded-lg shadow hover:shadow-md overflow-hidden">
+                <button onClick={() => setSelected(v)} className="block">
+                  <img src={v.images[0]} alt={v.name} className="w-full h-44 object-cover" />
+                </button>
+                <div className="p-4">
+                  <h3 className="font-semibold text-lg">{v.name}</h3>
+                  <p className="text-sm text-gray-500 mt-1">{v.description.substring(0, 80)}...</p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="text-lg font-bold">${v.price}</div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => addToCart(v)}
+                        className="px-3 py-1 bg-green-600 text-white rounded text-sm"
+                      >Agregar</button>
+                      <button onClick={() => setSelected(v)} className="px-3 py-1 border rounded text-sm">Ver</button>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {filtered.length === 0 && (
+            <div className="mt-6 bg-white p-6 rounded shadow-sm text-center">No se encontraron vehículos. Prueba quitar filtros.</div>
+          )}
+
+          {/* Contact / purchase form */}
+          <div className="mt-8 bg-white p-6 rounded shadow-sm">
+            <h2 className="text-xl font-semibold mb-3">Contacto / Compra</h2>
+            <p className="text-sm text-gray-600 mb-4">Rellena el formulario y te responderemos con los detalles de pago y entrega.</p>
+            <form onSubmit={handleContact} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input required name="name" placeholder="Nombre" className="p-2 border rounded" />
+              <input required name="email" type="email" placeholder="Correo" className="p-2 border rounded" />
+              <input name="phone" placeholder="Teléfono (opcional)" className="p-2 border rounded md:col-span-2" />
+              <textarea required name="message" placeholder="Qué vehículo te interesa / notas" className="p-2 border rounded md:col-span-2" />
+              <div className="md:col-span-2 flex gap-3 items-center">
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Enviar</button>
+                <div className="text-sm text-gray-500">También puedes contactarme por Discord / WhatsApp.</div>
+              </div>
+            </form>
+          </div>
+
+        </section>
+      </main>
+
+      {/* Modal for product details */}
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black opacity-50" onClick={() => setSelected(null)} />
+          <div className="relative max-w-4xl w-full bg-white rounded overflow-hidden shadow-lg z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2">
+              <div className="p-4">
+                <div className="space-y-2">
+                  {selected.images.map((src, i) => (
+                    <img key={i} src={src} alt={`${selected.name} ${i}`} className="w-full h-48 object-cover rounded" />
+                  ))}
+                </div>
+              </div>
+              <div className="p-6">
+                <h3 className="text-2xl font-bold">{selected.name}</h3>
+                <div className="text-xl font-semibold mt-2">${selected.price} {selected.currency}</div>
+                <p className="text-gray-700 mt-4">{selected.description}</p>
+                <div className="mt-4 flex gap-3">
+                  <button onClick={() => addToCart(selected)} className="px-4 py-2 bg-green-600 text-white rounded">Agregar al carrito</button>
+                  <a href={`mailto:you@example.com?subject=Interesado%20en%20${encodeURIComponent(selected.name)}`} className="px-4 py-2 border rounded text-sm">Pedir info</a>
+                </div>
+
+                <div className="mt-6 text-sm text-gray-500">SKU: {selected.id}</div>
+                <button onClick={() => setSelected(null)} className="absolute top-3 right-3 bg-white rounded-full p-1 border">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <footer className="max-w-6xl mx-auto mt-12 text-center text-sm text-gray-500">© {new Date().getFullYear()} FiveM Vehicles — Hecho por ti. Integra pasarelas de pago para vender directamente.</footer>
+    </div>
+  );
+}
